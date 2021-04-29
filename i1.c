@@ -93,7 +93,7 @@ Data_CompareCount(const void* va, const void* vb)
  }
 
 void NormalizeEndpoint(char* endpoint)
-// Given a string that might end in "/[0-9]+",
+// Given a string that might end in "/[0-9]+", replace that ending with "/#".
 {
     char* number;
 
@@ -118,7 +118,6 @@ void NormalizeEndpoint(char* endpoint)
 int main()
 {
     char* method = 0;
-    size_t length = sizeof(input) - 1;
     char* p = input;
     char* newline = 0;
     size_t line_count = 0;
@@ -126,6 +125,7 @@ int main()
     int print = 0;
     size_t i = 0;
     size_t j = 0;
+    size_t total = 0;
 
     // count lines, also nul terminating them for possible slight future ease/optimization
     // really just that strlen probably more optimized than strchr and nul terminated
@@ -146,7 +146,7 @@ int main()
     p = input;
     for (i = 0; i < line_count; ++i)
     {
-        // for debugging
+        // mostly for debugging
         char* time1 = 0;
         char* time2 = 0;
         char* method = 0;
@@ -261,5 +261,8 @@ int main()
         if (!data[i].count)
             continue;
         printf("%s %s %d %lu\n", data[i].method, data[i].endpoint, data[i].status, (unsigned long)data[i].count);
+        total += data[i].count;
     }
+
+    assert(total == line_count);
 }
