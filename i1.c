@@ -93,7 +93,7 @@ Data_CompareCount(const void* va, const void* vb)
 }
 
 int
-EndsWithDigits(const char* s)
+AllDigits(const char* s)
 {
     char ch;
     while (ch = *s++)
@@ -114,8 +114,6 @@ void
 NormalizeEndpoint(char* endpoint)
 // Given a string that might end in "/[0-9]+", replace that ending with "/#".
 {
-    char* number;
-
     char* slash = LastSlash(endpoint);
 
     // if no slash or end of string, done
@@ -123,10 +121,10 @@ NormalizeEndpoint(char* endpoint)
     if (!slash || !slash[1])
         return;
 
-    number = slash + 1;
+    char* number = slash + 1;
 
-    // Does it end in all numbers? If not, done.
-    if (!EndsWithDigits(number))
+    // Is it all digits? If not, done.
+    if (!AllDigits(number))
         return;
 
     *number = '#';
