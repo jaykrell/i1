@@ -2,27 +2,28 @@
 
 given multiline string such as:
 
-line := [time1 time2] method endpoint status client
+line = '['time1 time2']' method endpoint status client
 
-x := does not matter much, but has no spaces
-method := get | post | put
-time1 := x
-time2 := x
-status := [0-9]+
-client := x
-endpoint := endpoint1 | endpoint2
-endpoint1 := no spaces
-endpoint2 := no spaces, and ends with "/[0-9]+"
+x = does not matter much, but has no spaces
+method = get | post | put
+time1 = x
+time2 = x
+status = [0-9]+
+client = x
+endpoint = endpoint1 | endpoint2
+endpoint1 = no spaces
+endpoint2 = no spaces, and ends with "/[0-9]+"
 
 time1 and time2 are fixed width, which can be taken advantage or not
 given endpoint2, replace /[0-9]+ with #
-equivalence set := method + endpoint + status
+equivalence set = method + endpoint + status
 produce output, sorted by count, of equivalence set
   output order is unspecified otherwise
 
 unspecified if data fits in memory or efficiency requirements.
 
-method+endpoint+status could just about be considered as one string but that is not done
+method + endpoint + status could just about be considered as one string but that is not done
+ The normalization makes that a bit awkward also.
 */
 
 #include <string.h>
@@ -56,7 +57,8 @@ char input[]=
 
 typedef struct Data
 {
-    char* method; 
+    // store a hash?
+    char* method; // enum?
     char* endpoint;
     int status;
     size_t count;
@@ -65,8 +67,8 @@ typedef struct Data
 int
 Data_CompareWithoutCount(const void* va, const void* vb)
 {
-    Data* a = (Data*)va;
-    Data* b = (Data*)vb;
+    const Data* a = (const Data*)va;
+    const Data* b = (const Data*)vb;
     int i = strcmp(a->method, b->method);
     if (i)
         return i;
@@ -83,8 +85,8 @@ Data_CompareWithoutCount(const void* va, const void* vb)
 int
 Data_CompareCount(const void* va, const void* vb)
 {
-    Data* a = (Data*)va;
-    Data* b = (Data*)vb;
+    const Data* a = (const Data*)va;
+    const Data* b = (const Data*)vb;
     if (a->count > b->count)
         return -1;
     if (a->count < b->count)
