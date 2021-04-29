@@ -90,15 +90,33 @@ Data_CompareCount(const void* va, const void* vb)
     if (a->count < b->count)
         return 1;
     return 0;
- }
+}
 
-void NormalizeEndpoint(char* endpoint)
+int
+EndsWithDigits(const char* s)
+{
+    char ch;
+    while (ch = *s++)
+    {
+        if (ch < '0' || ch > '9')
+            return 0;
+    }
+    return 1;
+}
+
+char*
+LastSlash(char* s)
+{
+    return strrchr(s, '/');
+}
+
+void
+NormalizeEndpoint(char* endpoint)
 // Given a string that might end in "/[0-9]+", replace that ending with "/#".
 {
     char* number;
 
-    // find last slash
-    char* slash = strrchr(endpoint, '/');
+    char* slash = LastSlash(endpoint);
 
     // if no slash or end of string, done
     // i.e. string ending in "/" does not count
@@ -108,24 +126,59 @@ void NormalizeEndpoint(char* endpoint)
     number = slash + 1;
 
     // Does it end in all numbers? If not, done.
-    if (strspn(number, "0123456789") != strlen(number))
+    if (!EndsWithDigits(number))
         return;
 
     *number = '#';
     number[1] = 0;
 }
 
+char*
+SkipSpaces(char* p)
+{
+    while (*p == ' ')
+        ++p;
+    return p;
+}
+
+char*
+SkipToSpace(char* p)
+{
+    char ch;
+    while ((ch = *p) && ch != ' ')
+        ++p;
+    return p;
+}
+
+char*
+FieldSplit(char** p)
+{
+    // skip spaces at field start (sloppy input)
+    *p = SkipSpaces(*p);
+
+    char* result = *p;
+
+    // Skip to next space.
+    *p = SkipToSpace(*p);
+
+    assert(**p == ' ');
+
+    // Nul terminate the field, sometimes useful.
+    **p = 0;
+
+    return result;
+}
+
 int main()
 {
-    char* method = 0;
     char* p = input;
     char* newline = 0;
     size_t line_count = 0;
     Data* data = 0;
-    int print = 0;
+    int print = 0; // set to n to print the first n parses
     size_t i = 0;
     size_t j = 0;
-    size_t total = 0;
+    size_t total_print = 0;
 
     // count lines, also nul terminating them for possible slight future ease/optimization
     // really just that strlen probably more optimized than strchr and nul terminated
@@ -146,57 +199,13 @@ int main()
     p = input;
     for (i = 0; i < line_count; ++i)
     {
-        // mostly for debugging
-        char* time1 = 0;
-        char* time2 = 0;
-        char* method = 0;
-        char* endpoint = 0; // not normalized
-        char* status = 0;
-        char* client = 0;
-        int istatus = 0;
-
-        // word split
-        p += strspn(p, " "); // skip spaces (sloppy input)
-        time1 = p;
-        p = strchr(p, ' '); // skip time1, point to time2
-        assert(p);
-        *p = 0;
-
-        ++p;
-        p += strspn(p, " "); // skip spaces (sloppy input)
-        time2 = p;
-        p = strchr(p, ' '); // skip time2, point to method
-        assert(p);
-        *p = 0;
-
-        ++p;
-        p += strspn(p, " "); // skip spaces (sloppy input)
-        method = p;
-        data[i].method = p;
-
-        p += strspn(p, " "); // skip spaces (sloppy input)
-        p = strchr(p, ' '); // skip method, point to endpoint
-        assert(p);
-        *p = 0;
-
-        // if method ends in "/[0-9]+", replace with /#"
-
-        ++p;
-        p += strspn(p, " "); // skip spaces (sloppy input)
-        endpoint = p;
-        p = strchr(p, ' '); // skip endpoint, point to status
-        assert(p);
-        *p = 0;
-
-        ++p;
-        p += strspn(p, " "); // skip spaces (sloppy input)
-        status = p;
-        p = strchr(p, ' '); // skip status, point to client
-        assert(p);
-        *p = 0;
-        ++p;
-        client = p;
-
+        // split fields
+        char* time1 = FieldSplit(&p); ++p;
+        char* time2 = FieldSplit(&p); ++p;
+        char* method = FieldSplit(&p); ++p;
+        char* endpoint = FieldSplit(&p); ++p;
+        char* status = FieldSplit(&p); ++p;
+        char* client = p;
         p += strlen(p) + 1;
 
         if (print)
@@ -213,7 +222,7 @@ int main()
         if (print)
             printf("normalizedEndpoint:'%s' ", endpoint);
 
-        istatus = atoi(status);
+        int istatus = atoi(status);
         if (print)
             printf("istatus:'%d' ", istatus);
 
@@ -231,7 +240,7 @@ int main()
 
     if (line_count > 1)
     {
-        // sort by method+status+endpoint
+        // sort by method + status + endpoint
         qsort(data, line_count, sizeof(*data), Data_CompareWithoutCount);
 
         // equivalent items are now adjacent; count them
@@ -241,7 +250,7 @@ int main()
             {
                 if (Data_CompareWithoutCount(&data[i], &data[j]) == 0)
                 {
-                    data[j].count = 0;
+                    data[j].count = 0; // don't print
                     data[i].count += 1;
                 }
                 else
@@ -261,8 +270,8 @@ int main()
         if (!data[i].count)
             continue;
         printf("%s %s %d %lu\n", data[i].method, data[i].endpoint, data[i].status, (unsigned long)data[i].count);
-        total += data[i].count;
+        total_print += data[i].count;
     }
 
-    assert(total == line_count);
+    assert(total_print == line_count);
 }
