@@ -166,6 +166,8 @@ FieldSplit(char** p)
     // Nul terminate the field, sometimes useful.
     **p = 0;
 
+    ++(*p);
+
     return result;
 }
 
@@ -200,11 +202,11 @@ int main()
     for (i = 0; i < line_count; ++i)
     {
         // split fields
-        char* time1 = FieldSplit(&p); ++p;
-        char* time2 = FieldSplit(&p); ++p;
-        char* method = FieldSplit(&p); ++p;
-        char* endpoint = FieldSplit(&p); ++p;
-        char* status = FieldSplit(&p); ++p;
+        char* time1 = FieldSplit(&p);
+        char* time2 = FieldSplit(&p);
+        char* method = FieldSplit(&p);
+        char* endpoint = FieldSplit(&p);
+        char* status = FieldSplit(&p);
         char* client = p;
         p += strlen(p) + 1;
 
