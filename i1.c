@@ -30,6 +30,7 @@ method + endpoint + status could just about be considered as one string but that
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdint.h>
 
 // This input is a little sloppy: multiple spaces between some fields.
 char input[]=
@@ -55,13 +56,25 @@ char input[]=
 "[f345 67g9] get 5/users    200  cli6\n"
 ;
 
+uint64_t
+Hash(const char* s, uint64_t initial)
+{
+    uint64_t value = initial;
+    unsigned char ch;
+
+    while (ch = (unsigned char)*s++)
+        value = value * 131 + ch; // TODO a better hash?
+
+    return value;
+}
+
 typedef struct Data
 {
-    // store a hash?
     char* method; // enum?
     char* endpoint;
-    int status;
     size_t count;
+    uint64_t hash;
+    int status;
 } Data;
 
 int
@@ -80,6 +93,17 @@ Data_CompareWithoutCount(const void* va, const void* vb)
     if (a->status > b->status)
         return 1;
     return 0;
+}
+
+int
+Data_EqualWithoutCount(const void* va, const void* vb)
+{
+    const Data* a = (const Data*)va;
+    const Data* b = (const Data*)vb;
+    return a->hash == b->hash &&
+           a->status == b->status &&
+           strcmp(a->method, b->method) == 0 &&
+           strcmp(a->endpoint, b->endpoint) == 0;
 }
 
 int
@@ -238,6 +262,7 @@ int main()
         data[i].status = istatus;
         data[i].endpoint = endpoint;
         data[i].count = 1;
+        data[i].hash = (Hash(endpoint, Hash(method, 0)) << 8) | (uint64_t)istatus;
     }
 
     if (line_count > 1)
@@ -246,21 +271,21 @@ int main()
         qsort(data, line_count, sizeof(*data), Data_CompareWithoutCount);
 
         // equivalent items are now adjacent; count them
-        for (i = 0; i < line_count - 1; ++i)
+        for (i = 0; i < line_count - 1;)
         {
             for (j = i + 1; j < line_count; ++j)
             {
-                if (Data_CompareWithoutCount(&data[i], &data[j]) == 0)
+                if (Data_EqualWithoutCount(&data[i], &data[j]))
                 {
                     data[j].count = 0; // don't print
                     data[i].count += 1;
                 }
                 else
                 {
-                    i = j - 1;
                     break;
                 }
             }
+            i = j;
         }
 
         // sort by count
